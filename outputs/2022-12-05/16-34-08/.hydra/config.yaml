@@ -1,6 +1,0 @@
-dataset:
-  path: data
-algorithm:
-  min_grid_block: 3
-  max_grid_block: 10
-  sliding_window_blocks: 3
