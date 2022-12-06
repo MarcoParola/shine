@@ -1,9 +1,12 @@
+import os
 import numpy as np
+from PIL import Image
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+import hydra
+from src.datasets import ImageDataset
+from src.algorithms import *
 
-
-MIN_GRID_BLOCK = 3
-MAX_GRID_BLOCK = 20
 
 
 class SlidingAnalyzer():
@@ -24,42 +27,22 @@ class SlidingAnalyzer():
 
         for grid in range(MIN_GRID_BLOCK, MAX_GRID_BLOCK):
             analyze_image_by_grid(img, grid)
-            
 
-def analyze_image_by_grid(img, grid):
+
+
+
+
+@hydra.main(config_path="config", config_name="config")
+def main(cfg):
     
-    image_width = len(img)
-    image_heigth = len(img[0])
-    min_dim = min(image_width, image_heigth)
-    block_size = int(min_dim / grid)
-    grid_blocks_on_width = int(image_width / block_size)
-    grid_blocks_on_heigth = int(image_heigth / block_size)
-    sliding_window_blocks = 3
-    print(grid_blocks_on_heigth, grid_blocks_on_width, sliding_window_blocks)
-    for i in range(grid_blocks_on_width - sliding_window_blocks + 1):
-        for j in range(grid_blocks_on_heigth - sliding_window_blocks + 1):
-            #subwindow = img[i*block_size : (i+sliding_window_blocks) * block_size, j*block_size : (j+sliding_window_blocks) * block_size]
-            #analyze_window(subwindow, )
-            img_tmp = img.copy()
-            img_tmp[i*block_size : (i+sliding_window_blocks) * block_size, j*block_size : (j+sliding_window_blocks) * block_size] = 0.90
-            img_tmp[::block_size] = 0
-            img_tmp[:,::block_size] = 0
-            plt.imshow(img_tmp)
-            plt.show()
+    dataset = ImageDataset(cfg.dataset.path)
+    hierch_slider = HierarchicalSlider(cfg)
+    hierch_slider.run(dataset)
+    
+    
+    
 
-
-def analyze_image(img):
-    for grid in range(MIN_GRID_BLOCK, MAX_GRID_BLOCK):
-        analyze_image_by_grid(img, grid)
-
-def main():
-
-    dataset = np.ones((1, 300, 300, 3))
-
-    for img in dataset:
-        analyze_image(img)
-
-    print("hello")
+    
 
     
 if __name__ == "__main__":

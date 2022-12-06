@@ -1,0 +1,6 @@
+dataset:
+  path: ${hydra:runtime.cwd}/data/
+algorithm:
+  min_grid_block: 4
+  max_grid_block: 15
+  sliding_window_blocks: 4
