@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import hydra
 
-class HierarchicalSlider():
+class HierarchicalSliderAlghoritm():
     def __init__(self, cfg):
         self.min_grid_block = cfg.algorithm.min_grid_block
         self.max_grid_block = cfg.algorithm.max_grid_block
@@ -30,9 +30,7 @@ class HierarchicalSlider():
                 img_tmp2[::block_size] = 0
                 img_tmp2[:,::block_size] = 0
                 self.plot_grid_and_distribution(img_tmp1, img_tmp2[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size], block_size, grid, i, j)
-                #plt.imshow(img_tmp)
-                #plt.show()
-                #plt.savefig(os.path.join('data', 'tmp','img' + str(grid) + str(i) + str(j) + '.png'))
+               
 
     def verify_property(self, img, block_size):
         return 0
