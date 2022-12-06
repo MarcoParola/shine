@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import hydra
 from src.datasets import ImageDataset
-from src.algorithms import *
+from src.algorithms import HierarchicalSlider
 
 
 
