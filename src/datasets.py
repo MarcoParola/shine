@@ -14,6 +14,9 @@ class ImageDataset():
         im = Image.open(file_name)
         return np.asarray(im)
 
+    def get_file_name_by_id(self, idx):
+        return self.img_names[idx]
+
     def len(self):
         return len(self.img_names)
 
