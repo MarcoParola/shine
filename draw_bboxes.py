@@ -22,7 +22,7 @@ def main(cfg):
         img_file = os.path.join(cfg.dataset.path, file_name)
         im = np.array(Image.open(img_file))
         
-        csv_boxes_path = os.path.join(cfg.output.path, cfg.output.csv_boxes_folder)
+        csv_boxes_path = os.path.join(cfg.output.path, cfg.output.predicted_boxes_folder)
         create_dir(csv_boxes_path)
         
         try:

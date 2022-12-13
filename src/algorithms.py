@@ -13,8 +13,8 @@ class HierarchicalSliderAlghoritm():
         self.min_grid_block = cfg.algorithm.min_grid_block
         self.max_grid_block = cfg.algorithm.max_grid_block
         self.sliding_window_blocks = cfg.algorithm.sliding_window_blocks
-        self.csv_boxes_folder = os.path.join(cfg.output.path, cfg.output.csv_boxes_folder)
-        create_dir(self.csv_boxes_folder)
+        self.predicted_boxes_folder = os.path.join(cfg.output.path, cfg.output.predicted_boxes_folder)
+        create_dir(self.predicted_boxes_folder)
 
     def analyze_image_by_grid(self, img, file_name, grid):
     
@@ -24,33 +24,35 @@ class HierarchicalSliderAlghoritm():
         block_size = int(min_dim / grid)
         grid_blocks_on_width = int(image_width / block_size)    
         grid_blocks_on_heigth = int(image_heigth / block_size)
-        #print(grid_blocks_on_heigth, grid_blocks_on_width, self.sliding_window_blocks)
         for i in range(grid_blocks_on_width - self.sliding_window_blocks + 1):
             for j in range(grid_blocks_on_heigth - self.sliding_window_blocks + 1):
                 img_cropped = img[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size].copy() 
                 detect = verify_property(img_cropped, block_size)
-                
                 '''
+                plt.xticks([], [])
+                plt.yticks([], [])
                 img_tmp1 = img.copy()
                 img_tmp2 = img.copy()
                 img_tmp1[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size] = img_tmp1[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size] / 1.7
                 img_tmp1[::block_size] = 0
                 img_tmp1[:,::block_size] = 0
-                img_tmp2[::block_size] = 0
-                img_tmp2[:,::block_size] = 0
-
-                x1 = (j+1)*block_size
-                y1 = (i+1)*block_size
-                x2 = (j+1)*block_size+block_size*2
-                y2 = (i+1)*block_size+block_size*2
+                img_tmp2[::block_size] = 255
+                img_tmp2[:,::block_size] = 255
+                img_tmp2[1::block_size] = 255
+                img_tmp2[:,1::block_size] = 255
+                img_tmp2[2::block_size] = 255
+                img_tmp2[:,2::block_size] = 255
+                plt.imshow(img_tmp2)
+                plt.show()
+                break
                 '''
+                
                 if detect:
-                    #print('trueeee')
-                    file = os.path.join(self.csv_boxes_folder, file_name + '.csv')
+                    file = os.path.join(self.predicted_boxes_folder, file_name + '.csv')
                     write_predicted_bbox(i,j, file, block_size, self.sliding_window_blocks)
                     #cv2.rectangle(img_tmp1, (x1,y1), (x2, y2), (255,0,0), 2)
                     #self.plot_grid_and_distribution(img_tmp1, img_tmp2[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size], block_size, grid, i, j)
-                
+            
 
     
             

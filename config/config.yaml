@@ -1,11 +1,15 @@
+defaults:
+  - _self_
+
 dataset: 
   path: ${hydra:runtime.cwd}/data/
+  view: both
+  save: false
 
 output:
   path: ${hydra:runtime.cwd}/outputs/
-  csv_boxes_folder: csv_boxes
+  predicted_boxes_folder: predicted_boxes
   bounded_imgs_folder: bounded_imgs
-
 
 algorithm:
   min_grid_block: 4
