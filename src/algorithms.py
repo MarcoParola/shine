@@ -4,7 +4,8 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import hydra
-from src.utils import write_predicted_bbox
+from src.utils import write_predicted_bbox, create_dir
+from src.formal_methods import verify_property
 import cv2
 
 class HierarchicalSliderAlghoritm():
@@ -12,6 +13,8 @@ class HierarchicalSliderAlghoritm():
         self.min_grid_block = cfg.algorithm.min_grid_block
         self.max_grid_block = cfg.algorithm.max_grid_block
         self.sliding_window_blocks = cfg.algorithm.sliding_window_blocks
+        self.csv_boxes_folder = os.path.join(cfg.output.path, cfg.output.csv_boxes_folder)
+        create_dir(self.csv_boxes_folder)
 
     def analyze_image_by_grid(self, img, file_name, grid):
     
@@ -25,7 +28,7 @@ class HierarchicalSliderAlghoritm():
         for i in range(grid_blocks_on_width - self.sliding_window_blocks + 1):
             for j in range(grid_blocks_on_heigth - self.sliding_window_blocks + 1):
                 img_cropped = img[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size].copy() 
-                detect = self.verify_property(img_cropped, block_size)
+                detect = verify_property(img_cropped, block_size)
                 
                 '''
                 img_tmp1 = img.copy()
@@ -43,42 +46,13 @@ class HierarchicalSliderAlghoritm():
                 '''
                 if detect:
                     #print('trueeee')
-                    write_predicted_bbox(i,j, file_name, block_size, self.sliding_window_blocks)
+                    file = os.path.join(self.csv_boxes_folder, file_name + '.csv')
+                    write_predicted_bbox(i,j, file, block_size, self.sliding_window_blocks)
                     #cv2.rectangle(img_tmp1, (x1,y1), (x2, y2), (255,0,0), 2)
                     #self.plot_grid_and_distribution(img_tmp1, img_tmp2[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size], block_size, grid, i, j)
                 
 
-    def verify_property(self, img, block_size):
-        
-        # block1
-        mean1 = np.mean(img[ : block_size, : block_size])
-        mean2 = np.mean(img[ : block_size, block_size : 2*block_size])
-        mean3 = np.mean(img[block_size : 2*block_size, : block_size])
-        mean4 = np.mean(img[block_size : 2*block_size, block_size : 2*block_size])
-        block1 = mean4+4 < mean1 and mean4+4 < mean2 and mean4+4 < mean3
-
-        # block2
-        mean1 = np.mean(img[ : block_size, 2*block_size : 3*block_size])
-        mean2 = np.mean(img[ : block_size, 3*block_size : 4*block_size])
-        mean3 = np.mean(img[block_size : 2*block_size, 2*block_size : 3*block_size])
-        mean4 = np.mean(img[block_size : 2*block_size, 3*block_size : 4*block_size])
-        block2 = mean3+4 < mean1 and mean3+4 < mean2 and mean3+4 < mean4
-
-        # block3
-        mean1 = np.mean(img[ 2*block_size : 3*block_size, : block_size])
-        mean2 = np.mean(img[ 2*block_size : 3*block_size, block_size : 2*block_size])
-        mean3 = np.mean(img[ 3*block_size : 4*block_size, : block_size])
-        mean4 = np.mean(img[ 3*block_size : 4*block_size, block_size : 2*block_size])
-        block3 = mean2+4 < mean1 and mean2+4 < mean3 and mean2+4 < mean4
-
-        # block4
-        mean1 = np.mean(img[ 2*block_size : 3*block_size, 2*block_size : 3*block_size])
-        mean2 = np.mean(img[ 2*block_size : 3*block_size, 3*block_size : 4*block_size])
-        mean3 = np.mean(img[ 3*block_size : 4*block_size, 2*block_size : 3*block_size])
-        mean4 = np.mean(img[ 3*block_size : 4*block_size, 3*block_size : 4*block_size])
-        block4 = mean1+4 < mean4 and mean1+4 < mean2 and mean1+4 < mean3
-
-        return block1 and block2 and block3 and block4
+    
             
 
     def analyze_image(self, img, file_name):

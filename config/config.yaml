@@ -1,6 +1,12 @@
 dataset: 
   path: ${hydra:runtime.cwd}/data/
 
+output:
+  path: ${hydra:runtime.cwd}/outputs/
+  csv_boxes_folder: csv_boxes
+  bounded_imgs_folder: bounded_imgs
+
+
 algorithm:
   min_grid_block: 4
   max_grid_block: 20
