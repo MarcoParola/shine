@@ -25,8 +25,8 @@ def main(cfg):
                 for i, line in enumerate(reader):
                     x1 = int( float(line[1]) * len(im[0])) 
                     y1 = int( float(line[2]) * len(im))
-                    y2 = y1 + int( float(line[3]) * len(im))
-                    x2 = x1 + int( float(line[4]) * len(im[0]))
+                    x2 = x1 + int( float(line[3]) * len(im[0]))
+                    y2 = y1 + int( float(line[4]) * len(im))
                     x_shift = int( (x2 - x1) / 2)
                     y_shift = int( (y2 - y1) / 2)
                     x1 -= x_shift
