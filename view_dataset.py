@@ -49,7 +49,6 @@ def main(cfg):
         if cfg.dataset.view == 'all' or cfg.dataset.view == 'predicted':
             predicted_boxes_folder = os.path.join(cfg.output.path, cfg.output.predicted_boxes_folder)
             predicted_boxes = get_predicted_bboxes(dataset, predicted_boxes_folder)
-            create_dir(predicted_boxes_folder)
             for bbox in predicted_boxes[file_name]:
                 x,y,widht,height = bbox[0],bbox[1],bbox[2],bbox[3]
                 cv2.rectangle(im, (x, y), (x+widht, y+height), (255, 255, 255), 1)
@@ -58,7 +57,6 @@ def main(cfg):
         if cfg.dataset.view == 'all' or cfg.dataset.view == 'merged':
             predicted_merged_boxes_folder = os.path.join(cfg.output.path, cfg.output.predicted_merged_boxes_folder)
             predicted_boxes = get_predicted_bboxes(dataset, predicted_merged_boxes_folder)
-            create_dir(predicted_merged_boxes_folder)
             for bbox in predicted_boxes[file_name]:
                 x,y,widht,height = bbox[0],bbox[1],bbox[2],bbox[3]
                 cv2.rectangle(im, (x, y), (x+widht, y+height), (255, 0, 255), 2)
