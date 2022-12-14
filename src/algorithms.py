@@ -1,20 +1,25 @@
 import os
 import numpy as np
-from PIL import Image
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import hydra
-from src.utils import write_predicted_bbox, create_dir
-from src.formal_methods import verify_property
-import cv2
 
-class HierarchicalSliderAlghoritm():
+from src.utils import write_predicted_bbox, create_dir, get_predicted_bboxes, write_bbox
+from src.formal_methods import verify_property
+
+
+import torch
+import torchvision.ops.boxes as bops
+
+class SlidingHierarchicalImageTraversalAlghoritm():
+
     def __init__(self, cfg):
         self.min_grid_block = cfg.algorithm.min_grid_block
         self.max_grid_block = cfg.algorithm.max_grid_block
         self.sliding_window_blocks = cfg.algorithm.sliding_window_blocks
         self.predicted_boxes_folder = os.path.join(cfg.output.path, cfg.output.predicted_boxes_folder)
         create_dir(self.predicted_boxes_folder)
+
 
     def analyze_image_by_grid(self, img, file_name, grid):
     
@@ -46,11 +51,9 @@ class HierarchicalSliderAlghoritm():
                 plt.show()
                 break
                 '''
-                
                 if detect:
                     file = os.path.join(self.predicted_boxes_folder, file_name + '.csv')
                     write_predicted_bbox(i,j, file, block_size, self.sliding_window_blocks)
-                    #cv2.rectangle(img_tmp1, (x1,y1), (x2, y2), (255,0,0), 2)
                     #self.plot_grid_and_distribution(img_tmp1, img_tmp2[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size], block_size, grid, i, j)
             
 
@@ -63,12 +66,13 @@ class HierarchicalSliderAlghoritm():
             self.analyze_image_by_grid(img, file_name, grid)
 
 
-    def run(self, dataset):
+    def visit(self, dataset):
         for idx in range(dataset.len()):
             print('-----', dataset.get_file_name_by_id(idx), '-----')
             self.analyze_image(dataset.get_item(idx), dataset.get_file_name_by_id(idx))
 
-        
+
+
     def plot_grid_and_distribution(self, img, img_cropped, block_size, grid, idx, idy):
         
         fig = plt.figure(figsize=(12, 9))
@@ -111,4 +115,60 @@ class HierarchicalSliderAlghoritm():
         plt.show()
         #plt.savefig(os.path.join('data', 'tmp','img' + str(grid) + str(idx) + str(idy) + '.png'))
 
+
+class ExplainableDetector:
+
+    def __init__(self, cfg):
+        self.min_grid_block = cfg.algorithm.min_grid_block
+        self.max_grid_block = cfg.algorithm.max_grid_block
+        self.sliding_window_blocks = cfg.algorithm.sliding_window_blocks
+        self.shita = SlidingHierarchicalImageTraversalAlghoritm(cfg)
+        self.predicted_boxes_folder = os.path.join(cfg.output.path, cfg.output.predicted_boxes_folder)
+        self.predicted_merged_boxes_folder = os.path.join(cfg.output.path, cfg.output.predicted_merged_boxes_folder)
+        create_dir(self.predicted_merged_boxes_folder)
+
+    def run(self, dataset):
+        self.shita.visit(dataset)
+        predicted_bboxes = get_predicted_bboxes(dataset, self.predicted_boxes_folder)
+        self.merge_bboxes_by_iou(predicted_bboxes, self.predicted_merged_boxes_folder)
+
+
+    
+    def merge_bboxes_by_iou(self, predicted_bboxes_dict, predicted_merged_boxes_folder):
+        for key in predicted_bboxes_dict.keys():
+            file_name = os.path.join(predicted_merged_boxes_folder, key + '.csv')
+            self.merge_bbox(file_name, predicted_bboxes_dict[key])
+            
+
+
+    def merge_bbox(self, file_name, bboxes_list):
+
+        merged_bboxes = []
+        for bbox in bboxes_list:
+            if len(merged_bboxes) == 0:
+                merged_bboxes.append([bbox[:-1], 1])
+
+            iou_check = True
+            for i in range(len(merged_bboxes)):
+                box1 = torch.tensor([merged_bboxes[i][0]], dtype=torch.float)
+                box2 = torch.tensor([bbox[:-1]], dtype=torch.float)
+                iou = bops.box_iou(box1, box2)
+                
+                if iou > 0:
+                    iou_check = False
+                    merged_bboxes[i][0] = ((box1*merged_bboxes[i][1] + box2) / (merged_bboxes[i][1]+1) ).tolist()[0]
+                    merged_bboxes[i][1] += 1
+            if iou_check:
+                merged_bboxes.append([bbox[:-1], 1])
+
+        merged_bboxes = [bbox[0] for bbox in merged_bboxes]
+
+        for bbox in merged_bboxes:
+            x = bbox[0]
+            y = bbox[1]
+            width = bbox[2]
+            height = bbox[3]
+            write_bbox(file_name, x, y, width, height)
+
+        
 

@@ -3,12 +3,14 @@ defaults:
 
 dataset: 
   path: ${hydra:runtime.cwd}/data/
+  yolo_dataset_folder: yolo_dataset
   view: both
   save: false
 
 output:
   path: ${hydra:runtime.cwd}/outputs/
   predicted_boxes_folder: predicted_boxes
+  predicted_merged_boxes_folder: predicted_merged_boxes
   bounded_imgs_folder: bounded_imgs
 
 algorithm:
