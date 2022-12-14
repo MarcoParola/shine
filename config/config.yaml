@@ -4,7 +4,7 @@ defaults:
 dataset: 
   path: ${hydra:runtime.cwd}/data/
   yolo_dataset_folder: yolo_dataset
-  view: both
+  view: actual
   save: false
 
 output:

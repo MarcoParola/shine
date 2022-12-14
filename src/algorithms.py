@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-from src.utils import write_predicted_bbox, create_dir, get_predicted_bboxes, write_bbox
+from src.utils import create_dir, get_predicted_bboxes, write_bbox
 from src.formal_methods import verify_property
 
 
@@ -29,35 +29,16 @@ class SlidingHierarchicalImageTraversalAlghoritm():
         block_size = int(min_dim / grid)
         grid_blocks_on_width = int(image_width / block_size)    
         grid_blocks_on_heigth = int(image_heigth / block_size)
+
         for i in range(grid_blocks_on_width - self.sliding_window_blocks + 1):
             for j in range(grid_blocks_on_heigth - self.sliding_window_blocks + 1):
                 img_cropped = img[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size].copy() 
                 detect = verify_property(img_cropped, block_size)
-                '''
-                plt.xticks([], [])
-                plt.yticks([], [])
-                img_tmp1 = img.copy()
-                img_tmp2 = img.copy()
-                img_tmp1[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size] = img_tmp1[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size] / 1.7
-                img_tmp1[::block_size] = 0
-                img_tmp1[:,::block_size] = 0
-                img_tmp2[::block_size] = 255
-                img_tmp2[:,::block_size] = 255
-                img_tmp2[1::block_size] = 255
-                img_tmp2[:,1::block_size] = 255
-                img_tmp2[2::block_size] = 255
-                img_tmp2[:,2::block_size] = 255
-                plt.imshow(img_tmp2)
-                plt.show()
-                break
-                '''
                 if detect:
                     file = os.path.join(self.predicted_boxes_folder, file_name + '.csv')
-                    write_predicted_bbox(i,j, file, block_size, self.sliding_window_blocks)
+                    x, y, width, height = (j+1)*block_size, (i+1)*block_size, block_size*2, block_size*2
+                    write_bbox(file, x, y, width, height)
                     #self.plot_grid_and_distribution(img_tmp1, img_tmp2[i*block_size : (i+self.sliding_window_blocks) * block_size, j*block_size : (j+self.sliding_window_blocks) * block_size], block_size, grid, i, j)
-            
-
-    
             
 
     def analyze_image(self, img, file_name):
@@ -72,12 +53,10 @@ class SlidingHierarchicalImageTraversalAlghoritm():
             self.analyze_image(dataset.get_item(idx), dataset.get_file_name_by_id(idx))
 
 
-
     def plot_grid_and_distribution(self, img, img_cropped, block_size, grid, idx, idy):
         
         fig = plt.figure(figsize=(12, 9))
         outer = gridspec.GridSpec(2, 1, wspace=0.12, hspace=0.12, height_ratios=[5,7])
-
         inner = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[0], wspace=0.1, hspace=0.1)
         ax = plt.Subplot(fig, inner[0])
         ax.imshow(img)
@@ -116,6 +95,8 @@ class SlidingHierarchicalImageTraversalAlghoritm():
         #plt.savefig(os.path.join('data', 'tmp','img' + str(grid) + str(idx) + str(idy) + '.png'))
 
 
+
+
 class ExplainableDetector:
 
     def __init__(self, cfg):
@@ -127,13 +108,17 @@ class ExplainableDetector:
         self.predicted_merged_boxes_folder = os.path.join(cfg.output.path, cfg.output.predicted_merged_boxes_folder)
         create_dir(self.predicted_merged_boxes_folder)
 
-    def run(self, dataset):
-        self.shita.visit(dataset)
+
+    def detect(self, dataset):
+        # detect all subregion verifying the property
+        #self.shita.visit(dataset)
+
+        # retrieve all detected bboxes
         predicted_bboxes = get_predicted_bboxes(dataset, self.predicted_boxes_folder)
+        print(predicted_bboxes)
         self.merge_bboxes_by_iou(predicted_bboxes, self.predicted_merged_boxes_folder)
 
 
-    
     def merge_bboxes_by_iou(self, predicted_bboxes_dict, predicted_merged_boxes_folder):
         for key in predicted_bboxes_dict.keys():
             file_name = os.path.join(predicted_merged_boxes_folder, key + '.csv')
@@ -142,7 +127,6 @@ class ExplainableDetector:
 
 
     def merge_bbox(self, file_name, bboxes_list):
-
         merged_bboxes = []
         for bbox in bboxes_list:
             if len(merged_bboxes) == 0:
@@ -150,25 +134,33 @@ class ExplainableDetector:
 
             iou_check = True
             for i in range(len(merged_bboxes)):
-                box1 = torch.tensor([merged_bboxes[i][0]], dtype=torch.float)
-                box2 = torch.tensor([bbox[:-1]], dtype=torch.float)
+                box1 = self.from_xywh_to_x1y1x2y2_bbox(merged_bboxes[i][0])
+                box1 = torch.tensor([box1], dtype=torch.float)
+                box2 = self.from_xywh_to_x1y1x2y2_bbox(bbox[:-1])
+                box2 = torch.tensor([box2], dtype=torch.float)
                 iou = bops.box_iou(box1, box2)
-                
                 if iou > 0:
                     iou_check = False
-                    merged_bboxes[i][0] = ((box1*merged_bboxes[i][1] + box2) / (merged_bboxes[i][1]+1) ).tolist()[0]
+                    merged_bboxes[i][0] = ((box1*torch.tensor([merged_bboxes[i][1]], dtype=torch.float) + box2) / (merged_bboxes[i][1]+1) ).tolist()[0]
+                    merged_bboxes[i][0] = self.from_x1y1x2y2_to_xywh_bbox(merged_bboxes[i][0])
                     merged_bboxes[i][1] += 1
             if iou_check:
                 merged_bboxes.append([bbox[:-1], 1])
 
         merged_bboxes = [bbox[0] for bbox in merged_bboxes]
-
         for bbox in merged_bboxes:
-            x = bbox[0]
-            y = bbox[1]
-            width = bbox[2]
-            height = bbox[3]
+            bbox = [int(x) for x in bbox]
+            x, y, width, height = bbox[0], bbox[1], bbox[2], bbox[3]
             write_bbox(file_name, x, y, width, height)
 
+    def from_xywh_to_x1y1x2y2_bbox(self,xywh_bbox):
+        x1,x2 = xywh_bbox[0], xywh_bbox[0] + xywh_bbox[2]
+        y1,y2 = xywh_bbox[1], xywh_bbox[1] + xywh_bbox[3]
+        return [x1, y1, x2, y2]
+
+    def from_x1y1x2y2_to_xywh_bbox(self,x1y1x2y2_bbox):
+        x,width = x1y1x2y2_bbox[0], x1y1x2y2_bbox[2] - x1y1x2y2_bbox[0]
+        y,height = x1y1x2y2_bbox[1], x1y1x2y2_bbox[3] - x1y1x2y2_bbox[1]
+        return [x, y, width, height]
         
 

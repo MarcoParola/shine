@@ -1,8 +1,3 @@
-import os
-import numpy as np
-from PIL import Image
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import hydra
 from src.datasets import ImageDataset
 from src.algorithms import ExplainableDetector
@@ -10,10 +5,9 @@ from src.algorithms import ExplainableDetector
 
 @hydra.main(config_path="config", config_name="config")
 def main(cfg):
-    
     dataset = ImageDataset(cfg.dataset.path)
-    hierch_slider_alg = ExplainableDetector(cfg)
-    hierch_slider_alg.run(dataset)
+    detector = ExplainableDetector(cfg)
+    detector.detect(dataset)
     
     
 if __name__ == "__main__":
