@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw, ImageFont
 import matplotlib.pyplot as plt
 import hydra
 from src.datasets import ImageDataset
-from src.utils import create_dir, get_predicted_bboxes
+from src.utils import create_dir, get_predicted_bboxes, get_actual_bboxes
 import cv2
 import csv
 
@@ -19,32 +19,18 @@ def main(cfg):
         file_name = os.path.join(cfg.dataset.path, dataset.get_file_name_by_id(idx))
         im = np.array(Image.open(file_name))
         file_name = dataset.get_file_name_by_id(idx)
-        birads = 0
+        birads = 0      
 
         # actual bboxes
         if cfg.dataset.view == 'all' or cfg.dataset.view == 'actual':
-            try:
-                with open(os.path.join( cfg.dataset.path, cfg.dataset.yolo_dataset_folder, file_name +'.txt'), "r") as f:
-                    reader = csv.reader(f, delimiter=" ")
-                    for i, line in enumerate(reader):
-                        birads = int(line[0]) +1
-                        x1 = int( float(line[1]) * len(im[0])) 
-                        y1 = int( float(line[2]) * len(im))
-                        x2 = x1 + int( float(line[3]) * len(im[0]))
-                        y2 = y1 + int( float(line[4]) * len(im))
-                        x_shift = int( (x2 - x1) / 2)
-                        y_shift = int( (y2 - y1) / 2)
-                        x1 -= x_shift
-                        x2 -= x_shift
-                        y1 -= y_shift
-                        y2 -= y_shift
-                        cv2.rectangle(im, (x1, y1), (x2, y2), (255,0,0), 3)
+            actual_boxes_folder = os.path.join(cfg.dataset.path, cfg.dataset.yolo_dataset_folder)
+            actual_boxes = get_actual_bboxes(dataset, actual_boxes_folder, cfg.dataset.path)
+            print(actual_boxes[file_name])
+            for bbox in actual_boxes[file_name]:
+                x,y,widht,height = bbox[0],bbox[1],bbox[2],bbox[3]
+                print(x,y,widht,height)
+                cv2.rectangle(im, (x1, y1), (x2, y2), (255,0,0), 3)
 
-            except FileNotFoundError:
-                print('\n\tSorry, not found.\n')
-                         
-
-        
         # predicted bboxes
         if cfg.dataset.view == 'all' or cfg.dataset.view == 'predicted':
             predicted_boxes_folder = os.path.join(cfg.output.path, cfg.output.predicted_boxes_folder)
@@ -61,7 +47,6 @@ def main(cfg):
                 x,y,widht,height = bbox[0],bbox[1],bbox[2],bbox[3]
                 cv2.rectangle(im, (x, y), (x+widht, y+height), (255, 0, 255), 2)
      
-            
         if cfg.dataset.save:
             bounded_imgs_folder = os.path.join(cfg.output.path, cfg.output.bounded_imgs_folder)
             create_dir(bounded_imgs_folder)

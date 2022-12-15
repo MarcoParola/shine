@@ -111,7 +111,7 @@ class ExplainableDetector:
 
     def detect(self, dataset):
         # detect all subregion verifying the property
-        #self.shita.visit(dataset)
+        self.shita.visit(dataset)
 
         # retrieve all detected bboxes
         predicted_bboxes = get_predicted_bboxes(dataset, self.predicted_boxes_folder)
