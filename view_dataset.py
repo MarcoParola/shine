@@ -29,7 +29,7 @@ def main(cfg):
             for bbox in actual_boxes[file_name]:
                 x,y,widht,height = bbox[0],bbox[1],bbox[2],bbox[3]
                 print(x,y,widht,height)
-                cv2.rectangle(im, (x1, y1), (x2, y2), (255,0,0), 3)
+                cv2.rectangle(im, (x, y), (x+widht, y+height), (255,0,0), 3)
 
         # predicted bboxes
         if cfg.dataset.view == 'all' or cfg.dataset.view == 'predicted':
@@ -57,6 +57,7 @@ def main(cfg):
             img_file = os.path.join(bounded_imgs_folder, file_name )
             im.save(img_file)
         else:
+            plt.title(file_name)
             plt.imshow(np.asarray(im))
             plt.show()
     

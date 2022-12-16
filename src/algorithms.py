@@ -4,14 +4,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-from src.utils import create_dir, get_predicted_bboxes, write_bbox
+from src.utils import *
 from src.formal_methods import verify_property
-
+from src.metrics import compute_iou
 
 import torch
 import torchvision.ops.boxes as bops
 
 class SlidingHierarchicalImageTraversalAlghoritm():
+    '''Function implementing hierarchical visiting of images by exploiting the
+     sliding window technique'''
 
     def __init__(self, cfg):
         self.min_grid_block = cfg.algorithm.min_grid_block
@@ -98,6 +100,8 @@ class SlidingHierarchicalImageTraversalAlghoritm():
 
 
 class ExplainableDetector:
+    '''Class implementing the object detection module, relying on the 
+    SlidingHierarchicalImageTraversalAlghoritm class'''
 
     def __init__(self, cfg):
         self.min_grid_block = cfg.algorithm.min_grid_block
@@ -110,12 +114,10 @@ class ExplainableDetector:
 
 
     def detect(self, dataset):
-        # detect all subregion verifying the property
+        '''detect all subregion verifying the property then retrieve all detected
+         bboxes and merge them by checking their overlapping'''
         self.shita.visit(dataset)
-
-        # retrieve all detected bboxes
         predicted_bboxes = get_predicted_bboxes(dataset, self.predicted_boxes_folder)
-        print(predicted_bboxes)
         self.merge_bboxes_by_iou(predicted_bboxes, self.predicted_merged_boxes_folder)
 
 
@@ -127,6 +129,7 @@ class ExplainableDetector:
 
 
     def merge_bbox(self, file_name, bboxes_list):
+        ''' function to generate the final (predicted) bboxes from all those detected'''
         merged_bboxes = []
         for bbox in bboxes_list:
             if len(merged_bboxes) == 0:
@@ -134,15 +137,15 @@ class ExplainableDetector:
 
             iou_check = True
             for i in range(len(merged_bboxes)):
-                box1 = self.from_xywh_to_x1y1x2y2_bbox(merged_bboxes[i][0])
-                box1 = torch.tensor([box1], dtype=torch.float)
-                box2 = self.from_xywh_to_x1y1x2y2_bbox(bbox[:-1])
-                box2 = torch.tensor([box2], dtype=torch.float)
-                iou = bops.box_iou(box1, box2)
+                iou = compute_iou(merged_bboxes[i][0], bbox[:-1])
                 if iou > 0:
                     iou_check = False
+                    box1 = from_xywh_to_x1y1x2y2_bbox(merged_bboxes[i][0])
+                    box1 = torch.tensor([box1], dtype=torch.float)
+                    box2 = from_xywh_to_x1y1x2y2_bbox(bbox[:-1])
+                    box2 = torch.tensor([box2], dtype=torch.float)
                     merged_bboxes[i][0] = ((box1*torch.tensor([merged_bboxes[i][1]], dtype=torch.float) + box2) / (merged_bboxes[i][1]+1) ).tolist()[0]
-                    merged_bboxes[i][0] = self.from_x1y1x2y2_to_xywh_bbox(merged_bboxes[i][0])
+                    merged_bboxes[i][0] = from_x1y1x2y2_to_xywh_bbox(merged_bboxes[i][0])
                     merged_bboxes[i][1] += 1
             if iou_check:
                 merged_bboxes.append([bbox[:-1], 1])
@@ -153,14 +156,5 @@ class ExplainableDetector:
             x, y, width, height = bbox[0], bbox[1], bbox[2], bbox[3]
             write_bbox(file_name, x, y, width, height)
 
-    def from_xywh_to_x1y1x2y2_bbox(self,xywh_bbox):
-        x1,x2 = xywh_bbox[0], xywh_bbox[0] + xywh_bbox[2]
-        y1,y2 = xywh_bbox[1], xywh_bbox[1] + xywh_bbox[3]
-        return [x1, y1, x2, y2]
-
-    def from_x1y1x2y2_to_xywh_bbox(self,x1y1x2y2_bbox):
-        x,width = x1y1x2y2_bbox[0], x1y1x2y2_bbox[2] - x1y1x2y2_bbox[0]
-        y,height = x1y1x2y2_bbox[1], x1y1x2y2_bbox[3] - x1y1x2y2_bbox[1]
-        return [x, y, width, height]
         
 
